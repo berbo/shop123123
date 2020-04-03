@@ -17,6 +17,9 @@ use app\modules\api\models\wxbdc\WXBizDataCrypt;
 use Curl\Curl;
 use Alipay\Exception\AlipayException;
 
+use app\models\Coupon;
+use app\models\CouponAutoSend;
+
 class LoginForm extends ApiModel
 {
     public $wechat_app;
@@ -162,6 +165,27 @@ class LoginForm extends ApiModel
                     $user = null;
                     $user = $same_user;
                 }
+               
+                    //LET US ADD AUTO COUPONS HERE
+
+                 $query = CouponAutoSend::find()->alias('od')
+                 ->where([
+                    'event' => 3,
+                    'is_delete' => 0,
+                ]);
+
+                $autosendlist = $query->select('od.*')
+                            ->asArray()->all();
+
+                if(count($autosendlist)) {
+                    //loop to give use all the auto send coupons that meet the criretia
+                    for($i = 0;$i < count($autosendlist);$i++){
+                        $coupon_id = $autosendlist[$i]['coupon_id'];
+                        $coupon_auto_send_id = $autosendlist[$i]['id'];
+                        Coupon::userAddCoupon($user->id,$coupon_id,$coupon_auto_send_id,null); //need to correct it
+                    }            
+                }
+
             } else {
                 $user->nickname = preg_replace('/[\xf0-\xf7].{3}/', '', $data['nickName']);
                 $user->avatar_url = $data['avatarUrl'];
@@ -185,6 +209,7 @@ class LoginForm extends ApiModel
                 'level' => $user->level,
                 'blacklist' => $user->blacklist,
             ];
+
             return new ApiResponse(0, 'success', $data);
         } else {
             return new ApiResponse(1, '登录失败', $errCode);

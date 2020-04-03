@@ -6,7 +6,6 @@ defined('YII_ENV') or exit('Access Denied');
  * User: luwei
  * Date: 2017/8/24
  * Time: 10:18
- * 27000*2 + 6800 + 10000 + 900 + 5500 + 2500 + 5000 + 41000 + 10000
  */
 
 use yii\widgets\LinkPager;
@@ -21,7 +20,6 @@ if (!$returnUrl) {
 $events = [
     1 => '页面转发',
     2 => '购买并付款',
-    3 => 'Berbo\'s',
 ];
 ?>
 <!--<link href="https://cdn.bootcss.com/jquery-datetimepicker/2.5.4/build/jquery.datetimepicker.min.css" rel="stylesheet">-->

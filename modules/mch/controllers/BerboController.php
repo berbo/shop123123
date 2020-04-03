@@ -11,64 +11,161 @@ namespace app\modules\mch\controllers;
 
 use app\models\Cat;
 use app\models\Coupon;
-use app\models\CouponAutoSend;
+use app\models\Berbo;
+use app\models\BerboAutoSend;
 use app\models\Goods;
 use app\models\User;
 use app\modules\mch\models\CouponEditForm;
 use app\modules\mch\models\CouponSendForm;
+use app\modules\mch\models\BerboEditForm;
+use app\modules\mch\models\BerboSendForm;
 
-class CouponController extends Controller
+class BerboController extends Controller
 {
     //优惠券列表
     public function actionIndex()
     {
-        //print_r($this);exit;
-        $list = Coupon::find()->where(['store_id' => $this->store->id, 'is_delete' => 0])->orderBy('sort ASC')->all();
+
+        $list = Berbo::find()->orderBy('id ASC')->all();
         return $this->render('index', [
             'list' => $list,
         ]);
     }
 
-public function actionHi()
-{
-    echo 'Hi berbo bernard';exit;
-}
+
     //优惠券编辑
     public function actionEdit($id = null)
     {
-        $model = Coupon::findOne([
+        $model = Berbo::findOne([
             'id' => $id,
-            'store_id' => $this->store->id,
-            'is_delete' => 0,
         ]);
-        $cat_id = json_decode($model->cat_id_list);
-        $cat = Cat::find()->where(['store_id' => $this->store->id, 'is_delete' => 0, 'id' => $cat_id])->all();
-        $goods_id = json_decode($model->goods_id_list);
-        $goods = Goods::find()->where(['store_id' => $this->store->id, 'is_delete' => 0, 'status' => 1, 'id' => $goods_id])->all();
         if (!$model) {
-            $model = new Coupon();
+            $model = new Berbo();
         }
         if (\Yii::$app->request->isPost) {
-            $form = new CouponEditForm();
+            $form = new BerboEditForm();
             $form->attributes = \Yii::$app->request->post();
             $form->store_id = $this->store->id;
-            $form->coupon = $model;
+            $form->berbo = $model;
             return $form->save();
         } else {
             foreach ($model as $index => $value) {
-                if (in_array($index, ['cat_id_list'])) {
-                    continue;
-                }
+
                 $model[$index] = str_replace("\"", "&quot;", $value);
             }
             return $this->render('edit', [
                 'model' => $model,
-                'cat' => $cat,
-                'goods' => $goods,
             ]);
         }
     }
 
+    //优惠券发放
+    public function actionSend($id)
+    {
+        $berbo = Berbo::findOne([
+            'id' => $id,
+        ]);
+        if (!$berbo) {
+            \Yii::$app->response->redirect(\Yii::$app->request->referrer)->send();
+            return;
+        }
+        if (\Yii::$app->request->isPost) {
+            $form = new BerboSendForm();
+            $form->attributes = \Yii::$app->request->post();
+            $form->store_id = $this->store->id;
+            $form->coupon_id = $berbo->id;
+            return $form->save();
+        } else {
+            return $this->render('send', [
+                'berbo' => $berbo,
+            ]);
+        }
+    }
+
+
+    //优惠券删除
+    public function actionDelete($id)
+    {
+        $model = Berbo::findOne([
+            'id' => $id,
+        ]);
+        if ($model) {
+            $model->is_delete = 1;
+            $model->save();
+            BerboAutoSend::updateAll(['is_delete' => 1], ['coupon_id' => $model->id]);
+        }
+        return [
+            'code' => 0,
+            'msg' => 'Delete OK!',
+        ];
+    }
+
+
+    //自动发放
+    public function actionAutoSend()
+    {
+        $list = BerboAutoSend::find()->orderBy('id DESC')->all();
+        return $this->render('auto-send', [
+            'list' => $list,
+        ]);
+    }
+
+    //自动发放编辑
+    public function actionAutoSendEdit($id = null)
+    {
+        $model = BerboAutoSend::findOne([
+            'id' => $id,
+        ]);
+        if (!$model) {
+            $model = new BerboAutoSend();
+        }
+        if (\Yii::$app->request->isPost) {
+            $berbo = Berbo::findOne([
+                'id' => \Yii::$app->request->post('id'),
+            ]);
+            if (!$berbo) {
+                return [
+                    'code' => 1,
+                    'msg' => '优惠券不存在或已删除，请刷新页面后重试',
+                ];
+            }
+
+            $model->event = \Yii::$app->request->post('event');
+            $model->id = $berbo->id;
+            $model->send_times = \Yii::$app->request->post('send_times');
+            if ($model->send_times === '' || $model->send_times === null) {
+                return [
+                    'code' => 1,
+                    'msg' => '最多发放次数不能为空',
+                ];
+            }
+            if($model->send_times >99999999){
+                return [
+                    'code' => 1,
+                    'msg' => '最多发放次数不能超过99999999'
+                ];
+            }
+            if ($model->isNewRecord) {
+                $model->id = $this->id;
+            }
+            if ($model->save()) {
+                return [
+                    'code' => 0,
+                    'msg' => '保存成功',
+                ];
+            } else {
+                return $model->errorResponse;
+            }
+        } else {
+            $coupon_list = Berbo::find()->where(['id' => $this->id])->all();
+            return $this->render('auto-send-edit', [
+                'model' => $model,
+                'coupon_list' => $coupon_list,
+            ]);
+        }
+    }
+
+/*
     public function actionDeleteCat()
     {
         $cat_id = \Yii::$app->request->get();
@@ -169,48 +266,6 @@ public function actionHi()
         ];
     }
 
-    //优惠券删除
-    public function actionDelete($id)
-    {
-        $model = Coupon::findOne([
-            'id' => $id,
-            'store_id' => $this->store->id,
-        ]);
-        if ($model) {
-            $model->is_delete = 1;
-            $model->save();
-            CouponAutoSend::updateAll(['is_delete' => 1], ['coupon_id' => $model->id]);
-        }
-        return [
-            'code' => 0,
-            'msg' => '操作成功',
-        ];
-    }
-
-    //优惠券发放
-    public function actionSend($id)
-    {
-        $coupon = Coupon::findOne([
-            'id' => $id,
-            'store_id' => $this->store->id,
-            'is_delete' => 0,
-        ]);
-        if (!$coupon) {
-            \Yii::$app->response->redirect(\Yii::$app->request->referrer)->send();
-            return;
-        }
-        if (\Yii::$app->request->isPost) {
-            $form = new CouponSendForm();
-            $form->attributes = \Yii::$app->request->post();
-            $form->store_id = $this->store->id;
-            $form->coupon_id = $coupon->id;
-            return $form->save();
-        } else {
-            return $this->render('send', [
-                'coupon' => $coupon,
-            ]);
-        }
-    }
 
     //查找用户
     public function actionSearchUser($keyword)
@@ -231,79 +286,6 @@ public function actionHi()
         ];
     }
 
-    //自动发放
-    public function actionAutoSend()
-    {
-        $list = CouponAutoSend::find()->where([
-            'store_id' => $this->store->id,
-            'is_delete' => 0,
-        ])->orderBy('addtime DESC')->all();
-        return $this->render('auto-send', [
-            'list' => $list,
-        ]);
-    }
-
-    //自动发放编辑
-    public function actionAutoSendEdit($id = null)
-    {
-        $model = CouponAutoSend::findOne([
-            'id' => $id,
-            'store_id' => $this->store->id,
-            'is_delete' => 0,
-        ]);
-        if (!$model) {
-            $model = new CouponAutoSend();
-        }
-        if (\Yii::$app->request->isPost) {
-            $coupon = Coupon::findOne([
-                'id' => \Yii::$app->request->post('coupon_id'),
-                'store_id' => $this->store->id,
-                'is_delete' => 0,
-            ]);
-            if (!$coupon) {
-                return [
-                    'code' => 1,
-                    'msg' => '优惠券不存在或已删除，请刷新页面后重试',
-                ];
-            }
-
-            $model->event = \Yii::$app->request->post('event');
-            $model->coupon_id = $coupon->id;
-            $model->send_times = \Yii::$app->request->post('send_times');
-            if ($model->send_times === '' || $model->send_times === null) {
-                return [
-                    'code' => 1,
-                    'msg' => '最多发放次数不能为空',
-                ];
-            }
-            if($model->send_times >99999999){
-                return [
-                    'code' => 1,
-                    'msg' => '最多发放次数不能超过99999999'
-                ];
-            }
-            if ($model->isNewRecord) {
-                $model->store_id = $this->store->id;
-                $model->addtime = time();
-                $model->is_delete = 0;
-            }
-            if ($model->save()) {
-                return [
-                    'code' => 0,
-                    'msg' => '保存成功',
-                ];
-            } else {
-                return $model->errorResponse;
-            }
-        } else {
-            $coupon_list = Coupon::find()->where(['store_id' => $this->store->id, 'is_delete' => 0])->all();
-            return $this->render('auto-send-edit', [
-                'model' => $model,
-                'coupon_list' => $coupon_list,
-            ]);
-        }
-    }
-
     //自动发放方案删除
     public function actionAutoSendDelete($id)
     {
@@ -320,4 +302,5 @@ public function actionHi()
             'msg' => '操作成功',
         ];
     }
+    */
 }

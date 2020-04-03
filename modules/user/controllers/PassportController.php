@@ -23,6 +23,8 @@ class PassportController extends Controller
     public function actionLogin($_platform = null)
     {
         $m = new UserAuthLogin();
+        $user = User::findOne(['wechat_open_id' => $data['openId'],'store_id' => $this->store->id]);
+        print_r($user);exit;
         $img_url = null;
         $error = null;
         if ($_platform) {

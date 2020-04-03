@@ -11,8 +11,7 @@ defined('YII_ENV') or exit('Access Denied');
 $this->title = '账户列表';
 $url_manager = Yii::$app->urlManager;
 $current_url = Yii::$app->request->absoluteUrl;
-$return_url = $url_manager->createUrl(['admin/user/index']);
-$this->params['active_nav_link'] = 'admin/user/index';
+
 ?>
 <nav aria-label="breadcrumb" role="navigation">
     <ol class="breadcrumb">

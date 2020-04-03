@@ -9,10 +9,16 @@
 namespace app\controllers;
 use Yii;
 use yii\web\Controller;
-use app\models\EntryForm;
 
+use app\models\EntryForm;
 use app\models\PtNoticeSender;
 use app\models\User;
+
+use app\models\Cat;
+use app\models\Coupon;
+use app\models\CouponAutoSend;
+use app\models\Goods;
+use app\models\UserAuthLogin;
 
 class SiteController extends Controller
 {
@@ -32,7 +38,15 @@ class SiteController extends Controller
         $tpl = new PtNoticeSender(null,1);
         $tpl->sendSuccessNotice(102);
     }
+
     public function actionSay($message='Man, amakuru yawe?') {
+
+        $list = Coupon::find()->all();
+
+        $m = new UserAuthLogin();
+
+        Coupon::userAddCoupon(1, 2,0,0);
+
         return $this->render('say',['ubutumwa'=>$message]);
     }
 

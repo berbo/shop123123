@@ -16,6 +16,7 @@ $this->params['active_nav_link'] = 'admin/user/me';
 
 /** @var \app\models\Admin $model */
 $model = Yii::$app->admin->identity;
+//print_r($model);exit;
 ?>
 <nav aria-label="breadcrumb" role="navigation">
     <ol class="breadcrumb">

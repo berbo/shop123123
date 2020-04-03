@@ -78,7 +78,7 @@ class Admin extends \yii\db\ActiveRecord implements IdentityInterface
      */
     public static function findIdentity($id)
     {
-        return self::findOne($id);
+          return self::findOne($id);
     }
 
     /**

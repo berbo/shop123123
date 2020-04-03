@@ -23,7 +23,7 @@ class UserController extends Controller
         $query = Admin::find()->where(['is_delete' => 0]);
         $count = $query->count();
         $pagination = new Pagination(['totalCount' => $count]);
-        $list = $query->limit($pagination->limit)->offset($pagination->offset)->orderBy('addtime DESC')->all();
+        $list = $query->limit($pagination->limit)->offset($pagination->offset)->orderBy('addtime asc')->all();
         return $this->render('index', [
             'list' => $list,
             'pagination' => $pagination,
